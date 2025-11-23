@@ -30,8 +30,8 @@ def main():
     # Initialize knowledge sources
     knowledge_sources = {'wikipedia': WikipediaRetriever()}
     
-    # Initialize CoK pipeline
-    cok = ChainOfKnowledge(gemini_client, groq_client, knowledge_sources)
+    # Initialize CoK pipeline (use Llama for reasoning to avoid safety filter issues)
+    cok = ChainOfKnowledge(gemini_client, groq_client, knowledge_sources, use_llama_for_reasoning=True)
     
     # Initialize evaluator
     dataset_manager = DatasetManager()

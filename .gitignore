@@ -25,6 +25,7 @@ venv/
 env/
 ENV/
 .venv
+venv/
 
 # IDE
 .vscode/
@@ -47,4 +48,6 @@ Thumbs.db
 Code-Templates.md
 CoK-Implementation-Plan.md
 Instructions.md
-
+IMPROVEMENTS.md
+EVALUATION_STATUS.md
+QUICK_START.md

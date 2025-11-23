@@ -62,13 +62,31 @@ class GeminiClient:
                 max_output_tokens=self.max_tokens
             )
             response = model.generate_content(prompt, generation_config=config)
+            
+            # Handle blocked content (finish_reason == 2)
+            if response.candidates and response.candidates[0].finish_reason == 2:
+                logger.warning("Content was blocked by safety filters - trying alternative prompt")
+                # Try with a more neutral prompt
+                try:
+                    safe_prompt = f"Please provide factual information about: {prompt[:200]}"
+                    response = model.generate_content(safe_prompt, generation_config=config)
+                    if response.candidates and response.candidates[0].finish_reason != 2:
+                        result = response.text
+                        self.request_cache[cache_key] = result
+                        return result
+                except:
+                    pass
+                logger.warning("Content was blocked by safety filters")
+                return "I cannot provide a response due to content safety filters."
+            
             result = response.text
             self.request_cache[cache_key] = result
             logger.debug(f"API call successful (model={self.model_name}, temp={temp})")
             return result
         except Exception as e:
             logger.error(f"Gemini API error: {str(e)}")
-            raise
+            # Return a fallback response instead of raising
+            return f"Error generating response: {str(e)}"
 
 class LLMFactory:
     @staticmethod

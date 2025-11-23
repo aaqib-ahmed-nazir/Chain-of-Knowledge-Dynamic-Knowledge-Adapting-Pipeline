@@ -28,14 +28,15 @@ def main():
     # Initialize knowledge sources
     knowledge_sources = {'wikipedia': WikipediaRetriever()}
     
-    # Initialize CoK pipeline
-    cok = ChainOfKnowledge(gemini_client, groq_client, knowledge_sources)
+    # Initialize CoK pipeline (use Llama for reasoning to avoid safety filter issues)
+    cok = ChainOfKnowledge(gemini_client, groq_client, knowledge_sources, use_llama_for_reasoning=True)
     
-    # Test questions
+    # Test questions - mix of simple (consensus) and complex (full pipeline)
     questions = [
-        "What is the capital of France?",
-        "Who wrote Romeo and Juliet?",
-        "What is the cure for pneumonia?"
+        "What is the capital of France?",  # Simple - should reach consensus
+        "Who wrote Romeo and Juliet?",  # Simple - should reach consensus
+        "What year was the Argentine actor who directed El Tio Disparate born?",  # Complex - should trigger full pipeline
+        "Which two countries share the longest border in the world?",  # Complex - might trigger full pipeline
     ]
     
     for question in questions:
@@ -45,10 +46,21 @@ def main():
         
         try:
             result = cok.run(question)
-            print(f"Answer: {result['answer']}")
-            print(f"Stage: {result['stage']}")
+            
+            # Clean answer (remove markdown formatting)
+            answer = result['answer'].replace('**', '').strip()
+            print(f"\nAnswer: {answer}")
+            
+            # Show models used
+            models = result.get('models_used', {})
+            print(f"\nModels Used:")
+            for stage, model in models.items():
+                print(f"  {stage.replace('_', ' ').title()}: {model}")
+            
+            print(f"\nStage: {result['stage']}")
             print(f"Confidence: {result['confidence']}")
-            print(f"Domains: {result.get('domains', 'N/A')}")
+            if result.get('domains'):
+                print(f"Domains: {', '.join(result['domains'])}")
         except Exception as e:
             logger.error(f"Error processing question: {str(e)}")
             print(f"Error: {str(e)}")

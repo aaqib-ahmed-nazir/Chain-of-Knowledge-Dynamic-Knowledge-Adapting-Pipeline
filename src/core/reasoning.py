@@ -53,24 +53,59 @@ class ReasoningPreparation:
         if not answers:
             return False
         
+        # Normalize answers for better comparison
+        normalized_answers = [self._normalize_answer(a) for a in answers]
+        
         from collections import Counter
-        counter = Counter(answers)
+        counter = Counter(normalized_answers)
         most_common_answer, count = counter.most_common(1)[0]
         agreement = count / len(answers)
         
         has_consensus = agreement > threshold
         logger.info(f"Consensus check: {agreement:.2%} agreement (threshold: {threshold:.0%})")
+        if not has_consensus:
+            logger.info(f"Answers vary - will proceed to full pipeline")
         
         return has_consensus
     
+    def _normalize_answer(self, answer: str) -> str:
+        """Normalize answer for comparison (remove extra words, lowercase, etc.)."""
+        # Remove common prefixes
+        prefixes = ["the answer is", "answer:", "therefore", "thus", "so"]
+        answer_lower = answer.lower().strip()
+        for prefix in prefixes:
+            if answer_lower.startswith(prefix):
+                answer_lower = answer_lower[len(prefix):].strip().lstrip(':').strip()
+        
+        # Take first 100 chars and remove punctuation for comparison
+        answer_lower = answer_lower[:100]
+        # Remove extra whitespace
+        answer_lower = ' '.join(answer_lower.split())
+        return answer_lower
+    
     def _extract_answer(self, rationale: str) -> str:
         """Extract answer from rationale."""
-        indicators = ["Answer:", "Final Answer:", "Conclusion:"]
+        # Clean markdown formatting
+        rationale = rationale.replace('**', '').replace('*', '').strip()
+        
+        indicators = ["Answer:", "Final Answer:", "Conclusion:", "The answer is", "Therefore"]
         for indicator in indicators:
-            if indicator in rationale:
-                return rationale.split(indicator)[-1].strip()
+            if indicator.lower() in rationale.lower():
+                # Find the indicator (case-insensitive)
+                idx = rationale.lower().find(indicator.lower())
+                answer = rationale[idx + len(indicator):].strip()
+                # Remove leading punctuation
+                answer = answer.lstrip(':').strip()
+                # Take first sentence if multiple
+                if '. ' in answer:
+                    answer = answer.split('. ')[0] + '.'
+                # Normalize: take last 50 chars max for comparison
+                return answer[:50].strip()
+        
+        # Fallback: take last sentence
         sentences = rationale.split('. ')
-        return sentences[-1].strip() if sentences else rationale.strip()
+        answer = sentences[-1].strip() if sentences else rationale.strip()
+        return answer[:50].strip()  # Normalize length for comparison
     
     def _parse_domains(self, domains_str: str) -> List[str]:
         """Parse domains from text."""

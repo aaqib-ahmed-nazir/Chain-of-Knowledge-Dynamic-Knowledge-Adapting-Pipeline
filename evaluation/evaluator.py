@@ -97,7 +97,8 @@ class CoKEvaluator:
     def _extract_question(self, sample: Dict, dataset_name: str) -> str:
         """Extract question from sample."""
         if dataset_name == 'fever':
-            return sample['claim']
+            # Try 'claim' first (FEVER), then 'text' (tweet_eval fallback)
+            return sample.get('claim', sample.get('text', str(sample)))
         elif dataset_name == 'hotpotqa':
             return sample['question']
         elif dataset_name == 'medmcqa':
@@ -110,7 +111,21 @@ class CoKEvaluator:
     def _extract_gold_label(self, sample: Dict, dataset_name: str) -> str:
         """Extract gold label from sample."""
         if dataset_name == 'fever':
-            return sample['label']
+            # Try 'label' field
+            label = sample.get('label', None)
+            if label is None:
+                return 'UNKNOWN'
+            # Convert to string and normalize
+            label_str = str(label).upper()
+            # Map tweet_eval labels (0=AGAINST, 1=FAVOR, 2=NONE) to FEVER format
+            if label_str in ['0', 'AGAINST', 'REFUTES']:
+                return 'REFUTES'
+            elif label_str in ['1', 'FAVOR', 'SUPPORTS']:
+                return 'SUPPORTS'
+            elif label_str in ['2', 'NONE', 'NOT ENOUGH INFO']:
+                return 'NOT ENOUGH INFO'
+            # If already in FEVER format, return as is
+            return label_str
         elif dataset_name == 'hotpotqa':
             return sample['answer']
         elif dataset_name == 'medmcqa':

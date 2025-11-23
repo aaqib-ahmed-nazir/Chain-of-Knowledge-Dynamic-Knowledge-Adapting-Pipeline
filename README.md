@@ -14,42 +14,49 @@ This implementation reproduces the Chain-of-Knowledge pipeline, which consists o
 
 ## Quick Start
 
-### 1. Installation
+### 1. Setup
 
 ```bash
+# Create virtual environment
+python3 -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install dependencies
 pip install -r requirements.txt
-```
 
-### 2. Setup API Keys
-
-Copy `.env.example` to `.env` and add your API keys:
-
-```bash
+# Setup API keys
 cp .env.example .env
+# Edit .env and add your GROQ_API_KEY and GEMINI_API_KEY
 ```
 
-Edit `.env`:
-```
-GROQ_API_KEY=your_groq_api_key_here
-GEMINI_API_KEY=your_gemini_api_key_here
-LOG_LEVEL=INFO
-```
+### 2. Run Tests
 
-### 3. Run Smoke Test
-
-Test the pipeline on a few examples:
-
+**Smoke Test (Quick):**
 ```bash
+source venv/bin/activate
 python scripts/run_single_example.py
 ```
 
-### 4. Run Full Evaluation
-
-Evaluate on all benchmark datasets:
-
+**Full Evaluation (2-4 hours):**
 ```bash
+source venv/bin/activate
 python scripts/run_evaluation.py
 ```
+
+### 3. View Results
+
+After evaluation completes:
+```bash
+source venv/bin/activate
+python scripts/visualize_results.py
+```
+
+Results are saved to `data/results/`:
+- `evaluation_YYYYMMDD_HHMMSS.json` - Full results
+- `results_chart.png` - Visualization
+- `results_table.csv` - Table
+
+See `QUICK_START.md` for detailed instructions.
 
 ## Repository Structure
 

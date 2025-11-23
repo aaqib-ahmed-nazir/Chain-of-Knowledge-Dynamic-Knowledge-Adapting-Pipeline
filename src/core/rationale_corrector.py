@@ -9,14 +9,19 @@ class RationaleCorrector:
     def __init__(self, llm_client):
         self.llm_client = llm_client
     
-    def correct_rationale(self, original_rationale: str, supporting_knowledge: str) -> str:
-        """Correct rationale using retrieved knowledge."""
+    def correct_rationale(self, original_rationale: str, supporting_knowledge: str, context: str = "") -> str:
+        """Correct rationale using retrieved knowledge and optional context from previous corrections."""
         if not supporting_knowledge or supporting_knowledge == "No results found":
             logger.debug("No supporting knowledge - returning original rationale")
             return original_rationale
         
+        # Include context if provided (for progressive correction)
+        rationale_with_context = original_rationale
+        if context:
+            rationale_with_context = f"{context}\n\nRationale to correct: {original_rationale}"
+        
         prompt = RATIONALE_CORRECTION_PROMPT_TEMPLATE.format(
-            original_rationale=original_rationale,
+            original_rationale=rationale_with_context,
             supporting_knowledge=supporting_knowledge
         )
         
