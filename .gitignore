@@ -36,8 +36,6 @@ venv/
 
 # Project specific
 data/datasets/
-data/results/evaluation_*.json
-data/results/evaluation_incremental.json
 logs/
 .env
 *.log
@@ -46,4 +44,4 @@ evaluation_output.log
 # OS
 .DS_Store
 Thumbs.db
-data
+

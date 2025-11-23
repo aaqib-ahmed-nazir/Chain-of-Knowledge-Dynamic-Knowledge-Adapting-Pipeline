@@ -59,26 +59,59 @@ Final Answer:"""
         """Extract concise final answer from LLM response."""
         response = response.strip()
         
+        # Remove common prefixes that add unnecessary text
+        prefixes_to_remove = [
+            r"Therefore[,\s]+",
+            r"Thus[,\s]+",
+            r"Hence[,\s]+",
+            r"So[,\s]+",
+            r"Based on[^,]*,\s*",
+            r"In conclusion[,\s]+",
+            r"To answer[^,]*,\s*",
+            r"The answer to[^,]*,\s*",
+        ]
+        
+        cleaned_response = response
+        for prefix in prefixes_to_remove:
+            cleaned_response = re.sub(prefix, "", cleaned_response, flags=re.IGNORECASE)
+        
         # Look for common answer indicators
         patterns = [
             r"Final Answer:\s*(.+?)(?:\.|$|\n)",
             r"Answer:\s*(.+?)(?:\.|$|\n)",
             r"The answer is\s*(.+?)(?:\.|$|\n)",
-            r"Therefore[,\s]+(.+?)(?:\.|$|\n)",
+            r"is\s+(.+?)(?:\.|$|\n)",  # "is Paris" or "is William Shakespeare"
         ]
         
         for pattern in patterns:
-            match = re.search(pattern, response, re.IGNORECASE | re.DOTALL)
+            match = re.search(pattern, cleaned_response, re.IGNORECASE | re.DOTALL)
             if match:
                 answer = match.group(1).strip()
+                # Remove quotes if present
+                answer = answer.strip('"\'')
+                # Remove "the question" or similar phrases
+                answer = re.sub(r'the question[^.]*\.?\s*', '', answer, flags=re.IGNORECASE)
+                answer = re.sub(r'"[^"]*"\s*', '', answer)  # Remove quoted question text
                 # Take first sentence only
                 if '. ' in answer:
                     answer = answer.split('. ')[0]
+                # Remove trailing punctuation except for single letters (A, B, C, D)
+                if len(answer) > 1 and answer[-1] in '.,;:':
+                    answer = answer[:-1]
                 return answer[:200].strip()  # Limit length
         
-        # If no pattern found, take first sentence or first 200 chars
-        sentences = response.split('. ')
+        # If no pattern found, take last sentence (often contains the answer)
+        sentences = [s.strip() for s in cleaned_response.split('.') if s.strip()]
         if sentences:
-            return sentences[0][:200].strip()
-        return response[:200].strip()
+            last_sentence = sentences[-1]
+            # Remove common prefixes from last sentence
+            for prefix in ["Therefore ", "Thus ", "Hence ", "So "]:
+                if last_sentence.startswith(prefix):
+                    last_sentence = last_sentence[len(prefix):].strip()
+            # Remove quotes and question references
+            last_sentence = last_sentence.strip('"\'')
+            last_sentence = re.sub(r'the question[^.]*\.?\s*', '', last_sentence, flags=re.IGNORECASE)
+            return last_sentence[:200].strip()
+        
+        return cleaned_response[:200].strip()
 

@@ -9,13 +9,13 @@ from src.core.consolidation import AnswerConsolidation
 logger = logging.getLogger(__name__)
 
 class ChainOfKnowledge:
-    """Main CoK pipeline orchestrator - uses Llama 3.3 70B for all stages."""
+    """Main CoK pipeline orchestrator - uses Together AI (Llama 3 70B) for all stages."""
     
     def __init__(self, llm_client, knowledge_sources):
         """Initialize CoK pipeline with a single LLM client for all stages.
         
         Args:
-            llm_client: LLM client (should be GroqClient with Llama 3.3 70B)
+            llm_client: LLM client (TogetherAIClient with Llama 3 70B)
             knowledge_sources: Dictionary of knowledge sources
         """
         # Use same LLM client for all stages for consistency
@@ -24,7 +24,7 @@ class ChainOfKnowledge:
         self.query_generator = AdaptiveQueryGenerator(llm_client, knowledge_sources)
         self.corrector = RationaleCorrector(llm_client)
         self.consolidation = AnswerConsolidation(llm_client)
-        logger.info("CoK pipeline initialized with Llama 3.3 70B (all stages)")
+        logger.info("CoK pipeline initialized with Together AI (Llama 3 70B)")
     
     def run(self, question: str) -> Dict:
         """Execute full CoK pipeline."""
@@ -61,7 +61,7 @@ class ChainOfKnowledge:
                 "stage": "consensus",
                 "confidence": "high",
                 "models_used": {
-                    "reasoning": "Llama 3.3 70B",
+                    "reasoning": "Llama 3 70B",
                     "query_generation": "None (early stop)",
                     "consolidation": "None (early stop)"
                 }
@@ -80,22 +80,31 @@ class ChainOfKnowledge:
                 for j, prev_corrected in enumerate(corrected_rationales):
                     context += f"{j+1}. {prev_corrected}\n"
             
+            knowledge_found = False
             for domain in domains:
                 try:
                     # Generate query from current rationale (with context awareness)
                     query, query_type = self.query_generator.generate_query(rationale, domain)
                     knowledge = self.query_generator.execute_query(query, query_type, domain)
                     
-                    if knowledge != "No results found":
+                    if knowledge and knowledge != "No results found" and len(knowledge.strip()) > 10:
                         # Correct rationale using knowledge and context (progressive correction)
-                        corrected = self.corrector.correct_rationale(rationale, knowledge, context)
-                        corrected_rationales.append(corrected)
-                        logger.debug(f"Corrected rationale {i+1}/{len(rationales)} using {domain} knowledge")
-                        break
+                        try:
+                            corrected = self.corrector.correct_rationale(rationale, knowledge, context)
+                            if corrected and len(corrected.strip()) > 0:
+                                corrected_rationales.append(corrected)
+                                knowledge_found = True
+                                logger.debug(f"Corrected rationale {i+1}/{len(rationales)} using {domain} knowledge")
+                                break
+                        except Exception as e:
+                            logger.warning(f"Rationale correction failed: {str(e)}")
+                            # Continue to next domain
+                            continue
                 except Exception as e:
-                    logger.warning(f"Query processing failed: {str(e)}")
+                    logger.warning(f"Query processing failed for domain {domain}: {str(e)}")
                     continue
-            else:
+            
+            if not knowledge_found:
                 # If no domain worked, use original rationale
                 corrected_rationales.append(rationale)
                 logger.debug(f"Using original rationale {i+1}/{len(rationales)} (no knowledge found)")
@@ -112,9 +121,9 @@ class ChainOfKnowledge:
             "stage": "full_pipeline",
             "confidence": "medium",
             "models_used": {
-                "reasoning": "Llama 3.3 70B",
-                "query_generation": "Llama 3.3 70B",
-                "consolidation": "Llama 3.3 70B"
+                "reasoning": "Llama 3 70B",
+                "query_generation": "Llama 3 70B",
+                "consolidation": "Llama 3 70B"
             }
         }
     

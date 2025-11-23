@@ -8,6 +8,7 @@ from config.settings import config
 from src.utils.logger import setup_logger
 from src.models.llm_client import LLMFactory
 from src.knowledge.wikipedia_retriever import WikipediaRetriever
+from src.knowledge.wikidata_retriever import WikidataSPARQLRetriever
 from src.pipeline.chain_of_knowledge import ChainOfKnowledge
 from evaluation.benchmark_datasets import DatasetManager
 from evaluation.evaluator import CoKEvaluator
@@ -18,16 +19,24 @@ logger = setup_logger(__name__)
 def main():
     logger.info("Resuming CoK evaluation")
     
-    # Initialize LLM client - using only Llama 3.3 70B
-    llm_client = LLMFactory.create_groq_client(
-        config.GROQ_API_KEY,
-        config.LLM_MODEL
+    # Verify API key
+    if not config.TOGETHER_API_KEY:
+        logger.error("TOGETHER_API_KEY not set. Export it: export TOGETHER_API_KEY='your_key'")
+        sys.exit(1)
+    
+    # Initialize LLM client - using Together AI
+    llm_client = LLMFactory.create_together_client(
+        config.TOGETHER_API_KEY,
+        config.TOGETHER_MODEL
     )
     
     # Initialize knowledge sources
-    knowledge_sources = {'wikipedia': WikipediaRetriever()}
+    knowledge_sources = {
+        'wikipedia': WikipediaRetriever(),
+        'wikidata_sparql': WikidataSPARQLRetriever()
+    }
     
-    # Initialize CoK pipeline - uses Llama for all stages
+    # Initialize CoK pipeline
     cok = ChainOfKnowledge(llm_client, knowledge_sources)
     
     # Initialize evaluator
@@ -41,4 +50,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

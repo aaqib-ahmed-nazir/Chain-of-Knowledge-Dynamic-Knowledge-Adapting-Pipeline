@@ -112,10 +112,14 @@ class ReasoningPreparation:
         if sentences:
             last_sentence = sentences[-1]
             # Remove common prefixes
-            for prefix in ["So ", "Thus ", "Therefore ", "Hence "]:
-                if last_sentence.startswith(prefix):
-                    return last_sentence[len(prefix):].strip()
-            return last_sentence
+            for prefix in ["So ", "Thus ", "Therefore ", "Hence ", "Based on ", "In conclusion "]:
+                if last_sentence.lower().startswith(prefix.lower()):
+                    last_sentence = last_sentence[len(prefix):].strip()
+            # Remove question references
+            import re
+            last_sentence = re.sub(r'the question[^.]*\.?\s*', '', last_sentence, flags=re.IGNORECASE)
+            last_sentence = re.sub(r'"[^"]*"\s*', '', last_sentence)  # Remove quoted question text
+            return last_sentence.strip()
         
         return rationale.strip()[:100]  # Fallback
     

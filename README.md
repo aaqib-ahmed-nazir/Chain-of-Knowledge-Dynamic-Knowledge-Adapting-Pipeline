@@ -26,7 +26,7 @@ pip install -r requirements.txt
 
 # Setup API keys
 cp .env.example .env
-# Edit .env and add your GROQ_API_KEY
+# Edit .env and add your TOGETHER_API_KEY
 ```
 
 ### 2. Run Tests
@@ -103,10 +103,10 @@ from src.models.llm_client import LLMFactory
 from src.knowledge.wikipedia_retriever import WikipediaRetriever
 from src.pipeline.chain_of_knowledge import ChainOfKnowledge
 
-# Initialize LLM client (Llama 3.3 70B via Groq)
-llm_client = LLMFactory.create_groq_client(
-    config.GROQ_API_KEY,
-    config.LLM_MODEL
+# Initialize LLM client (Llama 3 70B via Together AI)
+llm_client = LLMFactory.create_together_client(
+    config.TOGETHER_API_KEY,
+    config.TOGETHER_MODEL
 )
 
 # Initialize knowledge sources
@@ -122,7 +122,7 @@ print(result['answer'])
 
 ## Models Used
 
-- **All Stages**: Llama 3.3 70B Versatile (via Groq API)
+- **All Stages**: Llama 3 70B Chat (via Together AI)
 - Single model for consistency across all pipeline stages
 
 ## Knowledge Sources
@@ -154,13 +154,13 @@ Results are saved to `data/results/` as JSON files.
 
 ## API Requirements
 
-- **Groq API Key**: Required for Llama 3.3 70B
-- **Free Tier**: 100,000 tokens per day
-- **Rate Limits**: Handled automatically with exponential backoff
+- **Together AI API Key**: Required for Llama 3 70B
+- **Free Tier**: 1M+ requests per day (generous limits)
+- **No Rate Limits**: Stable and reliable
 
 ## Dependencies
 
-- `groq`: Groq API client
+- `together`: Together AI API client
 - `python-dotenv`: Environment variable management
 - `datasets`: HuggingFace datasets library
 - `wikipedia`: Wikipedia API wrapper

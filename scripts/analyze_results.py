@@ -7,9 +7,29 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 
-def load_results(results_file: str = "./data/results/evaluation_results.json") -> Dict:
-    """Load evaluation results."""
-    with open(results_file, 'r') as f:
+def load_results(results_dir: str = "./data/results") -> Dict:
+    """Load the most recent evaluation results."""
+    import glob
+    
+    # Try evaluation_incremental.json first (our main results file)
+    main_file = os.path.join(results_dir, "evaluation_incremental.json")
+    if os.path.exists(main_file):
+        with open(main_file, 'r') as f:
+            return json.load(f)
+    
+    # Try evaluation_results.json
+    alt_file = os.path.join(results_dir, "evaluation_results.json")
+    if os.path.exists(alt_file):
+        with open(alt_file, 'r') as f:
+            return json.load(f)
+    
+    # Fallback to timestamped files
+    json_files = glob.glob(os.path.join(results_dir, "evaluation_*.json"))
+    if not json_files:
+        raise FileNotFoundError(f"No evaluation results found in {results_dir}")
+    
+    latest_file = max(json_files, key=os.path.getctime)
+    with open(latest_file, 'r') as f:
         return json.load(f)
 
 def analyze_fever_confusion_matrix(results: Dict):

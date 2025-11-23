@@ -4,11 +4,14 @@ from dotenv import load_dotenv
 load_dotenv()
 
 class Config:
-    # API Keys - Using only Groq/Llama
-    GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+    # API Keys - Using Together AI
+    TOGETHER_API_KEY = os.getenv("TOGETHER_API_KEY")
     
-    # Models - All Llama 3.3 70B
-    LLM_MODEL = "llama-3.3-70b-versatile"
+    # Models - Llama 3 70B Chat
+    TOGETHER_MODEL = "meta-llama/Llama-3-70b-chat-hf"
+    # Alternative models available:
+    # - "meta-llama/Llama-3-8b-chat-hf" (faster)
+    # - "meta-llama/Llama-2-70b-chat-hf" (older but stable)
     
     # LLM Parameters
     REASONING_TEMPERATURE = 0.7
@@ -32,4 +35,3 @@ class Config:
     RESULTS_DIR = "./data/results"
 
 config = Config()
-
