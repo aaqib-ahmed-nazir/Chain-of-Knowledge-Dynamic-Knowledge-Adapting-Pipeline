@@ -9,38 +9,59 @@ from src.core.consolidation import AnswerConsolidation
 logger = logging.getLogger(__name__)
 
 class ChainOfKnowledge:
-    """Main CoK pipeline orchestrator."""
+    """Main CoK pipeline orchestrator - uses Llama 3.3 70B for all stages."""
     
-    def __init__(self, gemini_client, groq_client, knowledge_sources, use_llama_for_reasoning=True):
-        # Use Llama for reasoning (faster, no safety filters) or Gemini (original)
-        reasoning_client = groq_client if use_llama_for_reasoning else gemini_client
-        self.reasoning = ReasoningPreparation(reasoning_client)
-        self.query_generator = AdaptiveQueryGenerator(groq_client, knowledge_sources)
-        self.corrector = RationaleCorrector(gemini_client)
-        self.consolidation = AnswerConsolidation(gemini_client)
-        self.reasoning_model = "Llama" if use_llama_for_reasoning else "Gemini"
-        logger.info(f"CoK pipeline initialized (reasoning: {self.reasoning_model})")
+    def __init__(self, llm_client, knowledge_sources):
+        """Initialize CoK pipeline with a single LLM client for all stages.
+        
+        Args:
+            llm_client: LLM client (should be GroqClient with Llama 3.3 70B)
+            knowledge_sources: Dictionary of knowledge sources
+        """
+        # Use same LLM client for all stages for consistency
+        self.llm_client = llm_client
+        self.reasoning = ReasoningPreparation(llm_client)
+        self.query_generator = AdaptiveQueryGenerator(llm_client, knowledge_sources)
+        self.corrector = RationaleCorrector(llm_client)
+        self.consolidation = AnswerConsolidation(llm_client)
+        logger.info("CoK pipeline initialized with Llama 3.3 70B (all stages)")
     
     def run(self, question: str) -> Dict:
         """Execute full CoK pipeline."""
         logger.info(f"Processing question: {question[:100]}...")
         
-        # Stage 1: Reasoning Preparation (Llama or Gemini)
+        # Use fewer rationales for FEVER to save tokens (full pipeline uses more API calls)
+        if "Claim:" in question:
+            original_k = self.reasoning.k
+            self.reasoning.k = config.NUM_RATIONALES_FEVER
+            logger.debug(f"Using {self.reasoning.k} rationales for FEVER question")
+        
+        # Stage 1: Reasoning Preparation
         rationales = self.reasoning.generate_rationales(question)
+        
+        # Restore original k if changed
+        if "Claim:" in question:
+            self.reasoning.k = original_k
         answers = self.reasoning.generate_answers(question, rationales)
         domains = self.reasoning.identify_domains(question)
         
-        # Early stopping if consensus
-        if self.reasoning.has_consensus(answers, config.CONSENSUS_THRESHOLD):
+        # For FEVER-style questions, ALWAYS run full pipeline (no early stopping)
+        # Early stopping returns explanations instead of labels, which hurts accuracy
+        is_fever_style = "Claim:" in question
+        
+        # Early stopping ONLY if VERY high confidence (>70% instead of >50%)
+        # AND not a FEVER-style question
+        if not is_fever_style and self.reasoning.has_consensus(answers, threshold=0.7):
             consensus_answer = max(set(answers), key=answers.count)
             logger.info("Early stopping: consensus reached")
+            
             return {
                 "answer": consensus_answer,
                 "rationales": rationales,
                 "stage": "consensus",
                 "confidence": "high",
                 "models_used": {
-                    "reasoning": self.reasoning_model,
+                    "reasoning": "Llama 3.3 70B",
                     "query_generation": "None (early stop)",
                     "consolidation": "None (early stop)"
                 }
@@ -79,7 +100,7 @@ class ChainOfKnowledge:
                 corrected_rationales.append(rationale)
                 logger.debug(f"Using original rationale {i+1}/{len(rationales)} (no knowledge found)")
         
-        # Stage 3: Answer Consolidation (Gemini)
+        # Stage 3: Answer Consolidation
         logger.info("Stage 3: Answer Consolidation")
         final_answer = self.consolidation.consolidate(question, corrected_rationales)
         
@@ -91,9 +112,20 @@ class ChainOfKnowledge:
             "stage": "full_pipeline",
             "confidence": "medium",
             "models_used": {
-                "reasoning": self.reasoning_model,
-                "query_generation": "Llama",
-                "consolidation": "Gemini"
+                "reasoning": "Llama 3.3 70B",
+                "query_generation": "Llama 3.3 70B",
+                "consolidation": "Llama 3.3 70B"
             }
         }
+    
+    def _format_fever_answer(self, answer: str) -> str:
+        """Format answer as FEVER label if needed."""
+        answer_upper = answer.upper()
+        if 'SUPPORTS' in answer_upper or 'SUPPORT' in answer_upper:
+            return 'SUPPORTS'
+        elif 'REFUTES' in answer_upper or 'REFUTE' in answer_upper:
+            return 'REFUTES'
+        elif 'NOT ENOUGH INFO' in answer_upper or 'NOT ENOUGH' in answer_upper:
+            return 'NOT ENOUGH INFO'
+        return answer
 

@@ -41,12 +41,25 @@ Supporting Knowledge:
 
 Corrected Rationale:"""
 
-ANSWER_CONSOLIDATION_PROMPT_TEMPLATE = """Based on the following reasoning steps, provide a final answer to the question.
+ANSWER_CONSOLIDATION_PROMPT_TEMPLATE = """Based on the following reasoning steps, provide a concise final answer to the question.
 
 Question: {question}
 
 Reasoning steps:
 {reasoning_steps}
+
+IMPORTANT: Provide ONLY the answer, nothing else. 
+- For fact verification (SUPPORTS/REFUTES/NOT ENOUGH INFO): Provide only the label (one of: SUPPORTS, REFUTES, or NOT ENOUGH INFO).
+- For multiple choice (A, B, C, D): Provide only the letter.
+- For factual questions: Provide only the specific fact or entity name.
+- Do NOT include explanations, reasoning, or additional text.
+
+Examples:
+- If the claim is supported: "SUPPORTS"
+- If the claim is refuted: "REFUTES"  
+- If there's not enough information: "NOT ENOUGH INFO"
+- For multiple choice: "A" or "B" or "C" or "D"
+- For factual: "Paris" or "Einstein"
 
 Final Answer:"""
 

@@ -15,21 +15,17 @@ logger = setup_logger(__name__)
 def main():
     logger.info("Running smoke test on single examples")
     
-    # Initialize LLM clients
-    gemini_client = LLMFactory.create_gemini_client(
-        config.GEMINI_API_KEY,
-        config.GEMINI_MODEL
-    )
-    groq_client = LLMFactory.create_groq_client(
+    # Initialize LLM client - using only Llama 3.3 70B
+    llm_client = LLMFactory.create_groq_client(
         config.GROQ_API_KEY,
-        config.GROQ_MODEL
+        config.LLM_MODEL
     )
     
     # Initialize knowledge sources
     knowledge_sources = {'wikipedia': WikipediaRetriever()}
     
-    # Initialize CoK pipeline (use Llama for reasoning to avoid safety filter issues)
-    cok = ChainOfKnowledge(gemini_client, groq_client, knowledge_sources, use_llama_for_reasoning=True)
+    # Initialize CoK pipeline - uses Llama for all stages
+    cok = ChainOfKnowledge(llm_client, knowledge_sources)
     
     # Test questions - mix of simple (consensus) and complex (full pipeline)
     questions = [

@@ -1,3 +1,4 @@
+"""Resume evaluation from where it left off."""
 import sys
 import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -15,7 +16,7 @@ from evaluation.evaluator import CoKEvaluator
 logger = setup_logger(__name__)
 
 def main():
-    logger.info("Initializing CoK evaluation with Llama 3.3 70B (all stages)")
+    logger.info("Resuming CoK evaluation")
     
     # Initialize LLM client - using only Llama 3.3 70B
     llm_client = LLMFactory.create_groq_client(
@@ -33,9 +34,8 @@ def main():
     dataset_manager = DatasetManager()
     evaluator = CoKEvaluator(cok, dataset_manager)
     
-    # Run evaluation on all datasets
-    # Set resume=False to force re-run, or True to skip completed datasets
-    results = evaluator.evaluate_all(num_samples_per_dataset=50, resume=False)
+    # Resume evaluation (will skip completed datasets)
+    results = evaluator.evaluate_all(num_samples_per_dataset=50, resume=True)
     
     logger.info("Evaluation complete")
 

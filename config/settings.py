@@ -4,13 +4,11 @@ from dotenv import load_dotenv
 load_dotenv()
 
 class Config:
-    # API Keys
+    # API Keys - Using only Groq/Llama
     GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-    GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
     
-    # Models
-    GROQ_MODEL = "llama-3.1-70b-versatile"
-    GEMINI_MODEL = "gemini-2.5-flash"
+    # Models - All Llama 3.3 70B
+    LLM_MODEL = "llama-3.3-70b-versatile"
     
     # LLM Parameters
     REASONING_TEMPERATURE = 0.7
@@ -22,6 +20,8 @@ class Config:
     NUM_RATIONALES = 5
     CONSENSUS_THRESHOLD = 0.5
     EARLY_STOPPING_ENABLED = True
+    # Reduce rationales for FEVER to save tokens (full pipeline uses more)
+    NUM_RATIONALES_FEVER = 3  # Use fewer for FEVER since it always runs full pipeline
     
     # Logging
     LOG_LEVEL = "INFO"

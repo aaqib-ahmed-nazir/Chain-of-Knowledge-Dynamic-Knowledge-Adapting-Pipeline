@@ -84,36 +84,56 @@ class ReasoningPreparation:
         return answer_lower
     
     def _extract_answer(self, rationale: str) -> str:
-        """Extract answer from rationale."""
+        """Extract answer from rationale - improved version."""
         # Clean markdown formatting
         rationale = rationale.replace('**', '').replace('*', '').strip()
         
-        indicators = ["Answer:", "Final Answer:", "Conclusion:", "The answer is", "Therefore"]
+        # First priority: explicit answer markers
+        indicators = ["Answer:", "Final Answer:", "Answer is", "The answer is", "Conclusion:"]
         for indicator in indicators:
             if indicator.lower() in rationale.lower():
-                # Find the indicator (case-insensitive)
-                idx = rationale.lower().find(indicator.lower())
-                answer = rationale[idx + len(indicator):].strip()
-                # Remove leading punctuation
-                answer = answer.lstrip(':').strip()
-                # Take first sentence if multiple
-                if '. ' in answer:
-                    answer = answer.split('. ')[0] + '.'
-                # Normalize: take last 50 chars max for comparison
-                return answer[:50].strip()
+                parts = rationale.lower().split(indicator.lower())
+                if len(parts) > 1:
+                    answer = parts[-1].strip()
+                    # Clean up
+                    answer = answer.split('\n')[0].strip()  # First line only
+                    answer = answer.split('Therefore')[0].strip()
+                    answer = answer.split('Thus')[0].strip()
+                    answer = answer.split('Hence')[0].strip()
+                    # Remove leading punctuation
+                    answer = answer.lstrip(':').strip()
+                    # Take first sentence if multiple
+                    if '. ' in answer:
+                        answer = answer.split('. ')[0] + '.'
+                    return answer.strip()
         
-        # Fallback: take last sentence
-        sentences = rationale.split('. ')
-        answer = sentences[-1].strip() if sentences else rationale.strip()
-        return answer[:50].strip()  # Normalize length for comparison
+        # Second priority: last sentence
+        sentences = [s.strip() for s in rationale.split('.') if s.strip()]
+        if sentences:
+            last_sentence = sentences[-1]
+            # Remove common prefixes
+            for prefix in ["So ", "Thus ", "Therefore ", "Hence "]:
+                if last_sentence.startswith(prefix):
+                    return last_sentence[len(prefix):].strip()
+            return last_sentence
+        
+        return rationale.strip()[:100]  # Fallback
     
     def _parse_domains(self, domains_str: str) -> List[str]:
-        """Parse domains from text."""
-        valid_domains = ['factual', 'medical', 'physics', 'biology']
+        """Parse domains from text - improved version."""
+        domains_str = domains_str.lower()
         found_domains = []
         
-        for domain in valid_domains:
-            if domain.lower() in domains_str.lower():
+        # Domain keywords mapping
+        domain_keywords = {
+            'factual': ['factual', 'wikipedia', 'historical', 'geographic', 'political', 'general knowledge'],
+            'medical': ['medical', 'health', 'disease', 'treatment', 'medicine', 'patient', 'clinical', 'diagnosis'],
+            'physics': ['physics', 'force', 'energy', 'motion', 'quantum', 'relativity', 'mechanics', 'electromagnetic'],
+            'biology': ['biology', 'organism', 'cell', 'genetics', 'evolution', 'species', 'molecular', 'biochemical']
+        }
+        
+        for domain, keywords in domain_keywords.items():
+            if any(keyword in domains_str for keyword in keywords):
                 found_domains.append(domain)
         
         return found_domains if found_domains else ['factual']

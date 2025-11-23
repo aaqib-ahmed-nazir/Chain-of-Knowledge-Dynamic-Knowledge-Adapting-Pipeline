@@ -52,13 +52,16 @@ class DatasetManager:
             logger.error(f"Failed to load HotpotQA dataset: {str(e)}")
             raise
     
-    def load_medmcqa(self, split: str = 'test', num_samples: int = 50):
-        """Load MedMCQA dataset."""
+    def load_medmcqa(self, split: str = 'validation', num_samples: int = 50):
+        """Load MedMCQA dataset. Use validation split as test split doesn't have labels."""
         try:
             dataset = load_dataset('medmcqa', cache_dir=self.cache_dir)
             available_splits = list(dataset.keys())
-            if split not in available_splits:
-                split = available_splits[0] if available_splits else 'test'
+            # Prefer validation over test (test split has cop=-1, no labels)
+            if 'validation' in available_splits:
+                split = 'validation'
+            elif split not in available_splits:
+                split = available_splits[0] if available_splits else 'validation'
             samples = dataset[split].shuffle(seed=42).select(range(min(num_samples, len(dataset[split]))))
             logger.info(f"Loaded {len(samples)} samples from MedMCQA {split}")
             return samples
@@ -69,7 +72,14 @@ class DatasetManager:
     def load_mmlu_physics(self, num_samples: int = 30):
         """Load MMLU Physics subset."""
         try:
-            dataset = load_dataset('cais/mmlu', 'physics', cache_dir=self.cache_dir)
+            # Try college_physics first, fallback to high_school_physics
+            try:
+                dataset = load_dataset('cais/mmlu', 'college_physics', cache_dir=self.cache_dir)
+                logger.info("Using MMLU college_physics")
+            except:
+                dataset = load_dataset('cais/mmlu', 'high_school_physics', cache_dir=self.cache_dir)
+                logger.info("Using MMLU high_school_physics")
+            
             available_splits = list(dataset.keys())
             split = 'test' if 'test' in available_splits else available_splits[0]
             samples = dataset[split].shuffle(seed=42).select(range(min(num_samples, len(dataset[split]))))
@@ -82,7 +92,14 @@ class DatasetManager:
     def load_mmlu_biology(self, num_samples: int = 30):
         """Load MMLU Biology subset."""
         try:
-            dataset = load_dataset('cais/mmlu', 'biology', cache_dir=self.cache_dir)
+            # Try college_biology first, fallback to high_school_biology
+            try:
+                dataset = load_dataset('cais/mmlu', 'college_biology', cache_dir=self.cache_dir)
+                logger.info("Using MMLU college_biology")
+            except:
+                dataset = load_dataset('cais/mmlu', 'high_school_biology', cache_dir=self.cache_dir)
+                logger.info("Using MMLU high_school_biology")
+            
             available_splits = list(dataset.keys())
             split = 'test' if 'test' in available_splits else available_splits[0]
             samples = dataset[split].shuffle(seed=42).select(range(min(num_samples, len(dataset[split]))))

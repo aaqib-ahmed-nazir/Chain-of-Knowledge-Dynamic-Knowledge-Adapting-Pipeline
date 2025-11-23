@@ -11,6 +11,11 @@ class WikipediaRetriever(KnowledgeSource):
     def search(self, query: str, top_k: int = 3) -> List[str]:
         """Search Wikipedia and return top k results."""
         try:
+            # Truncate query if too long (Wikipedia API limit is 300 chars)
+            if len(query) > 300:
+                query = query[:297] + "..."
+                logger.debug(f"Truncated query to {len(query)} chars")
+            
             results = wikipedia.search(query, results=top_k)
             summaries = []
             
@@ -23,10 +28,10 @@ class WikipediaRetriever(KnowledgeSource):
                     logger.debug(f"Could not retrieve page for {result}: {str(e)}")
                     continue
             
-            return summaries
+            return summaries if summaries else ["No results found"]
         except Exception as e:
             logger.error(f"Wikipedia search failed: {str(e)}")
-            return []
+            return ["No results found"]
     
     def get_name(self) -> str:
         return "wikipedia"

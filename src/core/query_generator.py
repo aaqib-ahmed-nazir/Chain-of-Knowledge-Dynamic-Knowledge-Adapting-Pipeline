@@ -63,13 +63,21 @@ class AdaptiveQueryGenerator:
         """Generate medical knowledge query."""
         prompt = MEDICAL_EXTRACTION_PROMPT_TEMPLATE.format(sentence=rationale)
         query = self.llm_client.call(prompt, temperature=0.0)
-        return query.strip()
+        query = query.strip()
+        # Truncate to 300 chars for Wikipedia API limit
+        if len(query) > 300:
+            query = query[:297] + "..."
+        return query
     
     def _generate_nl_query(self, rationale: str) -> str:
         """Generate natural language query."""
         prompt = NL_QUERY_EXTRACTION_PROMPT_TEMPLATE.format(sentence=rationale)
         query = self.llm_client.call(prompt, temperature=0.0)
-        return query.strip()
+        query = query.strip()
+        # Truncate to 300 chars for Wikipedia API limit
+        if len(query) > 300:
+            query = query[:297] + "..."
+        return query
     
     def _clean_sparql_query(self, query_str: str) -> str:
         """Clean SPARQL query output."""

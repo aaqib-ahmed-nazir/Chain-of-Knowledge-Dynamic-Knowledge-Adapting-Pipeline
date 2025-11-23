@@ -5,7 +5,11 @@ def accuracy(predictions: List[str], gold_labels: List[str]) -> float:
     if len(predictions) != len(gold_labels):
         raise ValueError("Predictions and gold labels must have same length")
     
-    correct = sum(p.lower().strip() == g.lower().strip() for p, g in zip(predictions, gold_labels))
+    # Convert all to strings and normalize
+    predictions_str = [str(p).lower().strip() for p in predictions]
+    gold_labels_str = [str(g).lower().strip() for g in gold_labels]
+    
+    correct = sum(p == g for p, g in zip(predictions_str, gold_labels_str))
     return (correct / len(predictions)) * 100
 
 

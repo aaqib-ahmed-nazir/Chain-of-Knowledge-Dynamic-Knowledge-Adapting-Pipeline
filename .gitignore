@@ -36,18 +36,14 @@ venv/
 
 # Project specific
 data/datasets/
-data/results/
+data/results/evaluation_*.json
+data/results/evaluation_incremental.json
 logs/
 .env
 *.log
+evaluation_output.log
 
 # OS
 .DS_Store
 Thumbs.db
-
-Code-Templates.md
-CoK-Implementation-Plan.md
-Instructions.md
-IMPROVEMENTS.md
-EVALUATION_STATUS.md
-QUICK_START.md
+data
