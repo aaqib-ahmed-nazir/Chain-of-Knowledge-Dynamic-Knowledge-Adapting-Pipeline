@@ -152,12 +152,6 @@ The evaluation framework supports 5 benchmark datasets:
 
 Results are saved to `data/results/` as JSON files.
 
-## API Requirements
-
-- **Together AI API Key**: Required for Llama 3 70B
-- **Free Tier**: 1M+ requests per day (generous limits)
-- **No Rate Limits**: Stable and reliable
-
 ## Dependencies
 
 - `together`: Together AI API client
