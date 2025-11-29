@@ -1,6 +1,6 @@
 Dataset,Samples,Our Result (%),Paper Baseline (%),Difference (%),Metric
-FEVER,40,70.00,63.40,+6.60,Accuracy
-HOTPOTQA,50,44.00,34.10,+9.90,Exact Match
-MEDMCQA,50,30.00,70.50,-40.50,Accuracy
-MMLU_PHYSICS,50,34.00,45.50,-11.50,Accuracy
-MMLU_BIOLOGY,50,44.00,83.00,-39.00,Accuracy
+FEVER,50,68.00,63.40,+4.60,Accuracy
+HOTPOTQA,50,45.40,34.10,+11.30,Exact Match
+MEDMCQA,50,68.50,70.50,-2.00,Accuracy
+MMLU_PHYSICS,50,46.00,45.50,+0.50,Accuracy
+MMLU_BIOLOGY,50,96.00,83.00,+13.00,Accuracy

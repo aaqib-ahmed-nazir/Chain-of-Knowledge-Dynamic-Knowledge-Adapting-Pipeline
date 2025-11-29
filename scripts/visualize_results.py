@@ -8,11 +8,11 @@ import pandas as pd
 
 def load_latest_results(results_dir: str = "./data/results") -> Dict:
     """Load the most recent evaluation results."""
-    # Try evaluation_results.json first (our main results file)
-    main_file = os.path.join(results_dir, "evaluation_results.json")
-    if os.path.exists(main_file):
-        print(f"Loading results from: {main_file}")
-        with open(main_file, 'r') as f:
+    # Try the specific timestamped results file first (our final results)
+    final_file = os.path.join(results_dir, "evaluation_20251129_165815.json")
+    if os.path.exists(final_file):
+        print(f"Loading results from: {final_file}")
+        with open(final_file, 'r') as f:
             return json.load(f)
     
     # Fallback to timestamped files

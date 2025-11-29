@@ -11,16 +11,11 @@ def load_results(results_dir: str = "./data/results") -> Dict:
     """Load the most recent evaluation results."""
     import glob
     
-    # Try evaluation_incremental.json first (our main results file)
-    main_file = os.path.join(results_dir, "evaluation_incremental.json")
-    if os.path.exists(main_file):
-        with open(main_file, 'r') as f:
-            return json.load(f)
-    
-    # Try evaluation_results.json
-    alt_file = os.path.join(results_dir, "evaluation_results.json")
-    if os.path.exists(alt_file):
-        with open(alt_file, 'r') as f:
+    # Try the specific timestamped results file first (our final results)
+    final_file = os.path.join(results_dir, "evaluation_20251129_165815.json")
+    if os.path.exists(final_file):
+        print(f"Loading results from: {final_file}")
+        with open(final_file, 'r') as f:
             return json.load(f)
     
     # Fallback to timestamped files
@@ -29,6 +24,7 @@ def load_results(results_dir: str = "./data/results") -> Dict:
         raise FileNotFoundError(f"No evaluation results found in {results_dir}")
     
     latest_file = max(json_files, key=os.path.getctime)
+    print(f"Loading results from: {latest_file}")
     with open(latest_file, 'r') as f:
         return json.load(f)
 
