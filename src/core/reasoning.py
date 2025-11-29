@@ -3,6 +3,7 @@ import logging
 from config.settings import config
 from src.utils.prompt_templates import (
     REASONING_PROMPT_TEMPLATE,
+    FEVER_REASONING_PROMPT_TEMPLATE,
     DOMAIN_IDENTIFICATION_PROMPT_TEMPLATE
 )
 
@@ -15,16 +16,57 @@ class ReasoningPreparation:
         self.llm_client = llm_client
         self.k = k
     
-    def generate_rationales(self, question: str) -> List[str]:
-        """Generate k rationales using chain-of-thought."""
+    def _estimate_question_complexity(self, question: str, dataset_name: str = None) -> float:
+        """Estimate question complexity and return appropriate temperature."""
+        question_lower = question.lower()
+        
+        # FEVER gets low temperature for consistent fact verification
+        if dataset_name == 'fever':
+            logger.debug("Using low temperature (0.3) for FEVER dataset")
+            return 0.3
+        
+        # Simple factual questions - low temperature
+        simple_patterns = ['what is', 'who is', 'when was', 'where is', 'what was']
+        if any(pattern in question_lower for pattern in simple_patterns):
+            logger.debug("Simple question detected - using temperature 0.3")
+            return 0.3
+        
+        # Moderate complexity questions
+        moderate_patterns = ['how does', 'why', 'explain', 'compare', 'describe']
+        if any(pattern in question_lower for pattern in moderate_patterns):
+            logger.debug("Moderate question detected - using temperature 0.6")
+            return 0.6
+        
+        # Complex/multi-hop questions - higher temperature for diversity
+        complex_patterns = ['relationship between', 'what if', 'analyze', 'evaluate', 'both', 'and also']
+        if any(pattern in question_lower for pattern in complex_patterns):
+            logger.debug("Complex question detected - using temperature 0.8")
+            return 0.8
+        
+        # Default temperature
+        logger.debug("Using default temperature 0.7")
+        return 0.7
+    
+    def generate_rationales(self, question: str, dataset_name: str = None) -> List[str]:
+        """Generate k rationales with adaptive temperature and dataset-specific prompts."""
         rationales = []
-        logger.info(f"Generating {self.k} rationales")
+        
+        # Quick Win 1: Adaptive temperature
+        adaptive_temp = self._estimate_question_complexity(question, dataset_name)
+        
+        # Quick Win 2: Dataset-specific prompts
+        if dataset_name == 'fever':
+            prompt_template = FEVER_REASONING_PROMPT_TEMPLATE
+            logger.info(f"Generating {self.k} rationales (dataset=fever, temp={adaptive_temp:.1f})")
+        else:
+            prompt_template = REASONING_PROMPT_TEMPLATE
+            logger.info(f"Generating {self.k} rationales (temp={adaptive_temp:.1f})")
         
         for i in range(self.k):
-            prompt = REASONING_PROMPT_TEMPLATE.format(question=question)
+            prompt = prompt_template.format(question=question)
             rationale = self.llm_client.call(
                 prompt, 
-                temperature=config.REASONING_TEMPERATURE
+                temperature=adaptive_temp
             )
             rationales.append(rationale)
             logger.debug(f"Generated rationale {i+1}/{self.k}")
@@ -141,4 +183,23 @@ class ReasoningPreparation:
                 found_domains.append(domain)
         
         return found_domains if found_domains else ['factual']
+    
+    def validate_consensus_answer(self, question: str, consensus_answer: str) -> bool:
+        """Validate if consensus answer is reasonable for the question."""
+        validation_prompt = f"""Given this question and answer, determine if the answer is reasonable and relevant to the question.
+
+Question: {question}
+Answer: {consensus_answer}
+
+Is this answer reasonable and relevant? Answer with YES or NO only."""
+        
+        validation = self.llm_client.call(validation_prompt, temperature=0.0)
+        is_valid = 'yes' in validation.lower()
+        
+        if not is_valid:
+            logger.info("Consensus answer failed validation - will use full pipeline")
+        else:
+            logger.info("Consensus answer validated - using early stop")
+        
+        return is_valid
 

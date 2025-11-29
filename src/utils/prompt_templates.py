@@ -6,6 +6,26 @@ Think about what information is needed to answer this question. Break down the p
 
 Answer:"""
 
+FEVER_REASONING_PROMPT_TEMPLATE = """You are a fact verification expert. Determine if the claim is SUPPORTED, REFUTED, or NOT ENOUGH INFO.
+
+Examples:
+1. Claim: "Paris is the capital of France"
+   Reasoning: Paris is widely recognized as the capital and largest city of France. This is a well-established geographical fact.
+   Verdict: SUPPORTS
+
+2. Claim: "The Earth is flat"
+   Reasoning: Modern science has conclusively shown through satellite imagery, physics, and direct observation that Earth is an oblate spheroid.
+   Verdict: REFUTES
+
+3. Claim: "Albert Einstein won the Nobel Prize in Physics in 1921"
+   Reasoning: Historical records confirm Einstein received the 1921 Nobel Prize in Physics for his discovery of the photoelectric effect.
+   Verdict: SUPPORTS
+
+Now analyze this claim:
+{question}
+
+Reasoning:"""
+
 DOMAIN_IDENTIFICATION_PROMPT_TEMPLATE = """Identify the knowledge domains relevant to answer this question.
 
 Available domains: [factual, medical, physics, biology]

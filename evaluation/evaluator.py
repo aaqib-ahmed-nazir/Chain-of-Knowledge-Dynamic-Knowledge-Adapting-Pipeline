@@ -55,8 +55,8 @@ class CoKEvaluator:
             gold_label = self._extract_gold_label(sample, dataset_name)
             
             try:
-                # Run CoK
-                result = self.cok_model.run(question)
+                # Run CoK with dataset name for adaptive prompts
+                result = self.cok_model.run(question, dataset_name)
                 prediction = result['answer']
                 
                 # Post-process prediction based on dataset type
@@ -393,7 +393,6 @@ class CoKEvaluator:
             match = re.search(r'\b([ABCD])\b', prediction.upper())
             if match:
                 return match.group(1)
-            # Fallback: return first 50 chars
             return prediction[:50]
         
         else:

@@ -26,7 +26,7 @@ class ChainOfKnowledge:
         self.consolidation = AnswerConsolidation(llm_client)
         logger.info("CoK pipeline initialized with Together AI (Llama 3 70B)")
     
-    def run(self, question: str) -> Dict:
+    def run(self, question: str, dataset_name: str = None) -> Dict:
         """Execute full CoK pipeline."""
         logger.info(f"Processing question: {question[:100]}...")
         
@@ -36,8 +36,8 @@ class ChainOfKnowledge:
             self.reasoning.k = config.NUM_RATIONALES_FEVER
             logger.debug(f"Using {self.reasoning.k} rationales for FEVER question")
         
-        # Stage 1: Reasoning Preparation
-        rationales = self.reasoning.generate_rationales(question)
+        # Stage 1: Reasoning Preparation (pass dataset_name for adaptive prompts)
+        rationales = self.reasoning.generate_rationales(question, dataset_name)
         
         # Restore original k if changed
         if "Claim:" in question:
@@ -53,19 +53,23 @@ class ChainOfKnowledge:
         # AND not a FEVER-style question
         if not is_fever_style and self.reasoning.has_consensus(answers, threshold=0.7):
             consensus_answer = max(set(answers), key=answers.count)
-            logger.info("Early stopping: consensus reached")
             
-            return {
-                "answer": consensus_answer,
-                "rationales": rationales,
-                "stage": "consensus",
-                "confidence": "high",
-                "models_used": {
-                    "reasoning": "Llama 3 70B",
-                    "query_generation": "None (early stop)",
-                    "consolidation": "None (early stop)"
+            # Quick Win 3: Validate consensus before early stopping
+            if self.reasoning.validate_consensus_answer(question, consensus_answer):
+                logger.info("Early stopping: validated consensus reached")
+                return {
+                    "answer": consensus_answer,
+                    "rationales": rationales,
+                    "stage": "consensus_validated",
+                    "confidence": "high",
+                    "models_used": {
+                        "reasoning": "Llama 3 70B",
+                        "query_generation": "None (early stop)",
+                        "consolidation": "None (early stop)"
+                    }
                 }
-            }
+            else:
+                logger.info("Consensus validation failed - proceeding to full pipeline")
         
         # Stage 2: Dynamic Knowledge Adapting (Llama for queries, Gemini for correction)
         # Progressive correction: use preceding corrected rationales for subsequent ones
