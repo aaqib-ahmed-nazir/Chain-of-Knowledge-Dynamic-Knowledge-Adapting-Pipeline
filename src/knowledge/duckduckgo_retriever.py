@@ -1,5 +1,6 @@
 from typing import List
 import logging
+from duckduckgo_search import DDGS
 from .sources import KnowledgeSource
 
 logger = logging.getLogger(__name__)
@@ -16,9 +17,6 @@ class DuckDuckGoRetriever(KnowledgeSource):
     def search(self, query: str, top_k: int = 3) -> List[str]:
         """Search DuckDuckGo and return top k results."""
         try:
-            # Import here to avoid dependency if not used
-            from duckduckgo_search import DDGS
-
             # Back off if approaching limit
             if self.request_count > self.request_limit:
                 logger.warning(
@@ -51,11 +49,6 @@ class DuckDuckGoRetriever(KnowledgeSource):
             logger.debug(f"DuckDuckGo: Found {len(summaries)} results for '{query}'")
             return summaries
 
-        except ImportError:
-            logger.warning(
-                "duckduckgo-search not installed. Install with: pip install duckduckgo-search"
-            )
-            return []
         except Exception as e:
             logger.debug(f"DuckDuckGo search failed: {str(e)}")
             return []
