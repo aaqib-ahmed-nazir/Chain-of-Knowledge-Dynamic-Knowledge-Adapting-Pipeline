@@ -13,14 +13,14 @@ class DatasetManager:
     def load_fever(self, split: str = 'validation', num_samples: int = 50):
         """Load FEVER dataset."""
         try:
-            # Try loading FEVER from different sources
+            # Use copenlu/fever_gold_evidence - properly formatted FEVER dataset
             try:
-                dataset = load_dataset('fever', cache_dir=self.cache_dir)
-                logger.info("Loaded FEVER dataset")
+                dataset = load_dataset('copenlu/fever_gold_evidence', cache_dir=self.cache_dir)
+                logger.info("Loaded FEVER dataset (copenlu/fever_gold_evidence)")
             except Exception as e1:
-                logger.warning(f"FEVER dataset not available ({str(e1)}), trying alternative")
+                logger.warning(f"Primary FEVER dataset failed ({str(e1)}), trying alternative")
                 try:
-                    # Use a fact-checking dataset as substitute
+                    # Fallback to stance detection dataset
                     dataset = load_dataset('tweet_eval', 'stance_climate', cache_dir=self.cache_dir)
                     logger.info("Using tweet_eval/stance_climate as FEVER substitute")
                 except Exception as e2:
@@ -29,7 +29,7 @@ class DatasetManager:
             
             available_splits = list(dataset.keys())
             if split not in available_splits:
-                split = available_splits[0] if available_splits else 'validation'
+                split = available_splits[0] if available_splits else 'train'
             max_samples = min(num_samples, len(dataset[split]))
             samples = dataset[split].shuffle(seed=42).select(range(max_samples))
             logger.info(f"Loaded {len(samples)} samples from dataset {split} split")
