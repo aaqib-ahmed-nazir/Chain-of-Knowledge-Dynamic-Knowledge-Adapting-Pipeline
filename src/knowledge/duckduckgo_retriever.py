@@ -1,13 +1,13 @@
 from typing import List
 import logging
-from duckduckgo_search import DDGS
+from ddgs import DDGS
 from .sources import KnowledgeSource
 
 logger = logging.getLogger(__name__)
 
 
 class DuckDuckGoRetriever(KnowledgeSource):
-    """Fallback web search using DuckDuckGo."""
+    """Web search using DuckDuckGo (used in parallel with Wikipedia)."""
 
     def __init__(self, timeout: int = 5):
         self.timeout = timeout

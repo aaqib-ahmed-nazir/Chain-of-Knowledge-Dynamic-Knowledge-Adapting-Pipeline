@@ -10,19 +10,19 @@ class KnowledgeSourceRanker:
     
     def __init__(self):
         """Initialize source ranker."""
-        # Domain to source priority mapping
+        # Domain to source priority mapping (DuckDuckGo as fallback)
         self.domain_source_priority = {
-            'factual': ['wikidata_sparql', 'wikipedia'],
-            'medical': ['wikipedia', 'wikidata_sparql'],
-            'physics': ['wikipedia', 'wikidata_sparql'],
-            'biology': ['wikipedia', 'wikidata_sparql']
+            'factual': ['wikidata_sparql', 'wikipedia', 'duckduckgo'],
+            'medical': ['wikipedia', 'wikidata_sparql', 'duckduckgo'],
+            'physics': ['wikipedia', 'wikidata_sparql', 'duckduckgo'],
+            'biology': ['wikipedia', 'wikidata_sparql', 'duckduckgo']
         }
         
-        # Query type to source priority mapping
+        # Query type to source priority mapping (DuckDuckGo as fallback)
         self.query_type_source_priority = {
-            'sparql': ['wikidata_sparql'],
-            'medical': ['wikipedia'],
-            'natural_language': ['wikipedia', 'wikidata_sparql']
+            'sparql': ['wikidata_sparql', 'duckduckgo'],
+            'medical': ['wikipedia', 'duckduckgo'],
+            'natural_language': ['wikipedia', 'wikidata_sparql', 'duckduckgo']
         }
     
     def rank_sources(self, domain: str, query_type: str, 

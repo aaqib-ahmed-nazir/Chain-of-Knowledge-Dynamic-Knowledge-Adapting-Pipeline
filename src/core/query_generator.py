@@ -32,115 +32,61 @@ class AdaptiveQueryGenerator:
             return query, 'natural_language'
     
     def execute_query(self, query: str, query_type: str, domain: str) -> str:
-        """Execute query and retrieve knowledge with relevance scoring and source ranking."""
+        """Execute query and retrieve knowledge from multiple sources in parallel."""
         try:
-            if query_type == 'sparql':
-                # Rank sources for SPARQL queries
-                ranked_sources = self.source_ranker.rank_sources(domain, query_type, self.knowledge_sources)
-                all_results = []
-                
-                # Try sources in priority order
-                for source_name in ranked_sources:
-                    try:
-                        source = self.knowledge_sources[source_name]
-                        if source_name == 'wikidata_sparql':
-                            results = source.search(query, top_k=5)
-                            if results:
-                                all_results.extend(results)
-                                logger.debug(f"Wikidata SPARQL query executed: {len(results)} results")
-                            else:
-                                # SPARQL failed or returned no results, try fallback
-                                logger.debug("Wikidata SPARQL returned no results, trying fallback")
-                                continue
-                        else:
-                            # Fallback to other sources (e.g., Wikipedia)
-                            logger.debug(f"Trying fallback source: {source_name}")
-                            results = source.search(query, top_k=3)
-                            if results:
-                                all_results.extend(results)
-                        
-                        # If we got results, break (don't try lower priority sources)
-                        if all_results:
-                            break
-                    except Exception as e:
-                        logger.debug(f"Source {source_name} failed: {str(e)}, trying next source")
-                        continue
-                
-                if all_results:
-                    # Score and rank results
-                    scored_results = self.relevance_scorer.score_relevance(query, all_results)
-                    # Filter low-relevance results and get top 3
-                    filtered = self.relevance_scorer.filter_by_threshold(scored_results, threshold=0.1)
-                    top_results = self.relevance_scorer.get_top_k(filtered, top_k=3)
-                    knowledge = "\n".join([item['content'] for item in top_results])
-                    logger.debug(f"SPARQL query executed: {len(top_results)} relevant results from {len(all_results)} total")
-                else:
-                    knowledge = "No results"
-            elif query_type == 'medical':
-                # Try multiple sources and rank results
-                all_results = []
-                if 'wikipedia' in self.knowledge_sources:
-                    try:
-                        results = self.knowledge_sources['wikipedia'].search(query, top_k=5)
-                        all_results.extend(results)
-                    except Exception as e:
-                        logger.warning(f"Wikipedia search failed: {str(e)}")
-                
-                # Fallback to DuckDuckGo if Wikipedia found nothing
-                if not all_results and 'duckduckgo' in self.knowledge_sources:
-                    logger.debug(f"Wikipedia empty for '{query[:50]}...' - trying DuckDuckGo")
-                    try:
-                        results = self.knowledge_sources['duckduckgo'].search(query, top_k=3)
-                        all_results.extend(results)
-                    except Exception as e:
-                        logger.debug(f"DuckDuckGo fallback failed: {str(e)}")
-                
-                # Score and rank all results
-                if all_results:
-                    scored_results = self.relevance_scorer.score_relevance(query, all_results)
-                    filtered = self.relevance_scorer.filter_by_threshold(scored_results, threshold=0.15)
-                    top_results = self.relevance_scorer.get_top_k(filtered, top_k=3)
-                    knowledge = "\n".join([item['content'] for item in top_results])
-                else:
-                    knowledge = "No results"
-            else:  # natural_language
-                # Try multiple sources and rank results
-                all_results = []
-                if 'wikipedia' in self.knowledge_sources:
-                    try:
-                        results = self.knowledge_sources['wikipedia'].search(query, top_k=5)
-                        all_results.extend(results)
-                    except Exception as e:
-                        logger.warning(f"Wikipedia search failed: {str(e)}")
-                
-                # Fallback to DuckDuckGo if Wikipedia found nothing
-                if not all_results and 'duckduckgo' in self.knowledge_sources:
-                    logger.debug(f"Wikipedia empty for '{query[:50]}...' - trying DuckDuckGo")
-                    try:
-                        results = self.knowledge_sources['duckduckgo'].search(query, top_k=3)
-                        all_results.extend(results)
-                    except Exception as e:
-                        logger.debug(f"DuckDuckGo fallback failed: {str(e)}")
-                
-                # Score and rank all results
-                if all_results:
-                    scored_results = self.relevance_scorer.score_relevance(query, all_results)
-                    filtered = self.relevance_scorer.filter_by_threshold(scored_results, threshold=0.15)
-                    top_results = self.relevance_scorer.get_top_k(filtered, top_k=3)
-                    knowledge = "\n".join([item['content'] for item in top_results])
-                else:
-                    knowledge = "No results"
+            all_results = []
             
-            if knowledge and knowledge != "No results":
-                logger.info(f"Query executed (type={query_type}, retrieved={len(knowledge)} chars)")
+            # Query all available sources in parallel
+            # DuckDuckGo (primary - fast web search)
+            if 'duckduckgo' in self.knowledge_sources:
+                try:
+                    results = self.knowledge_sources['duckduckgo'].search(query, top_k=3)
+                    if results:
+                        all_results.extend(results)
+                        logger.debug(f"DuckDuckGo: {len(results)} results")
+                except Exception as e:
+                    logger.debug(f"DuckDuckGo search failed: {str(e)}")
+            
+            # Wikipedia (parallel)
+            if 'wikipedia' in self.knowledge_sources:
+                try:
+                    results = self.knowledge_sources['wikipedia'].search(query, top_k=3)
+                    if results:
+                        all_results.extend(results)
+                        logger.debug(f"Wikipedia: {len(results)} results")
+                except Exception as e:
+                    logger.debug(f"Wikipedia search failed: {str(e)}")
+            
+            # Wikidata SPARQL (only for factual/sparql queries)
+            if query_type == 'sparql' and 'wikidata_sparql' in self.knowledge_sources:
+                try:
+                    results = self.knowledge_sources['wikidata_sparql'].search(query, top_k=3)
+                    if results:
+                        all_results.extend(results)
+                        logger.debug(f"Wikidata SPARQL: {len(results)} results")
+                except Exception as e:
+                    logger.debug(f"Wikidata SPARQL failed: {str(e)}")
+            
+            # Score and rank combined results
+            if all_results:
+                scored_results = self.relevance_scorer.score_relevance(query, all_results)
+                filtered = self.relevance_scorer.filter_by_threshold(scored_results, threshold=0.1)
+                top_results = self.relevance_scorer.get_top_k(filtered, top_k=3)
+                if top_results:
+                    knowledge = "\n".join([item['content'] for item in top_results])
+                    logger.info(f"Query executed: {len(top_results)} relevant results from {len(all_results)} total")
+                else:
+                    knowledge = "No results"
             else:
+                knowledge = "No results"
+            
+            if knowledge == "No results":
                 logger.warning(f"Query executed but no relevant results found (type={query_type})")
             
             return knowledge if knowledge else "No results found"
             
         except Exception as e:
             logger.error(f"Query execution failed: {str(e)}", exc_info=True)
-            # Return empty result instead of raising to allow pipeline to continue
             return "No results found"
     
     def _generate_sparql_query(self, rationale: str) -> str:
