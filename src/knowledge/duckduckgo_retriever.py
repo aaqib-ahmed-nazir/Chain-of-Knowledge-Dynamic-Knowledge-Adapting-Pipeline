@@ -1,5 +1,6 @@
 from typing import List
 import logging
+import time
 from ddgs import DDGS
 from .sources import KnowledgeSource
 
@@ -12,7 +13,7 @@ class DuckDuckGoRetriever(KnowledgeSource):
     def __init__(self, timeout: int = 5):
         self.timeout = timeout
         self.request_count = 0
-        self.request_limit = 100 
+        self.request_limit = 5000  
 
     def search(self, query: str, top_k: int = 3) -> List[str]:
         """Search DuckDuckGo and return top k results."""
@@ -20,9 +21,13 @@ class DuckDuckGoRetriever(KnowledgeSource):
             # Back off if approaching limit
             if self.request_count > self.request_limit:
                 logger.warning(
-                    "DuckDuckGo request limit approaching - returning empty"
+                    "DuckDuckGo request limit reached - returning empty"
                 )
                 return []
+
+            # Small delay to avoid rate limiting (0.5s between requests)
+            if self.request_count > 0 and self.request_count % 10 == 0:
+                time.sleep(0.5)
 
             # Execute search
             ddgs = DDGS(timeout=self.timeout)
