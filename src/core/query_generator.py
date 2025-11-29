@@ -86,6 +86,15 @@ class AdaptiveQueryGenerator:
                     except Exception as e:
                         logger.warning(f"Wikipedia search failed: {str(e)}")
                 
+                # Fallback to DuckDuckGo if Wikipedia found nothing
+                if not all_results and 'duckduckgo' in self.knowledge_sources:
+                    logger.debug(f"Wikipedia empty for '{query[:50]}...' - trying DuckDuckGo")
+                    try:
+                        results = self.knowledge_sources['duckduckgo'].search(query, top_k=3)
+                        all_results.extend(results)
+                    except Exception as e:
+                        logger.debug(f"DuckDuckGo fallback failed: {str(e)}")
+                
                 # Score and rank all results
                 if all_results:
                     scored_results = self.relevance_scorer.score_relevance(query, all_results)
@@ -103,6 +112,15 @@ class AdaptiveQueryGenerator:
                         all_results.extend(results)
                     except Exception as e:
                         logger.warning(f"Wikipedia search failed: {str(e)}")
+                
+                # Fallback to DuckDuckGo if Wikipedia found nothing
+                if not all_results and 'duckduckgo' in self.knowledge_sources:
+                    logger.debug(f"Wikipedia empty for '{query[:50]}...' - trying DuckDuckGo")
+                    try:
+                        results = self.knowledge_sources['duckduckgo'].search(query, top_k=3)
+                        all_results.extend(results)
+                    except Exception as e:
+                        logger.debug(f"DuckDuckGo fallback failed: {str(e)}")
                 
                 # Score and rank all results
                 if all_results:

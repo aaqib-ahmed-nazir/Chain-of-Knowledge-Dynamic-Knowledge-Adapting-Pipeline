@@ -8,6 +8,7 @@ from src.utils.logger import setup_logger
 from src.models.llm_client import LLMFactory
 from src.knowledge.wikipedia_retriever import WikipediaRetriever
 from src.knowledge.wikidata_retriever import WikidataSPARQLRetriever
+from src.knowledge.duckduckgo_retriever import DuckDuckGoRetriever
 from src.pipeline.chain_of_knowledge import ChainOfKnowledge
 from evaluation.benchmark_datasets import DatasetManager
 from evaluation.evaluator import CoKEvaluator
@@ -29,10 +30,11 @@ def main():
         config.TOGETHER_MODEL
     )
     
-    # Initialize knowledge sources
+    # Initialize knowledge sources (DuckDuckGo as fallback)
     knowledge_sources = {
         'wikipedia': WikipediaRetriever(),
-        'wikidata_sparql': WikidataSPARQLRetriever()
+        'wikidata_sparql': WikidataSPARQLRetriever(),
+        'duckduckgo': DuckDuckGoRetriever(timeout=5)
     }
     
     # Initialize CoK pipeline

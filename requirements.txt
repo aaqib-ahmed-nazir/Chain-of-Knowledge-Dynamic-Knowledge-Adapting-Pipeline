@@ -6,3 +6,4 @@ tqdm>=4.65.0
 matplotlib>=3.7.0
 pandas>=2.0.0
 requests>=2.31.0
+duckduckgo-search>=8.0.0
